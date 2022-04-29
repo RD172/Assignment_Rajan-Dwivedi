@@ -1,0 +1,381 @@
+Q1. Write a common use-case, where you will use a daemon set instead of replica set.
+
+Use a DaemonSet instead of a ReplicaSet for Pods that provide a machine-level function, such as machine monitoring or machine logging.
+These Pods have a lifetime that is tied to a machine lifetime: the Pod needs to be running on the machine before other Pods start, and are safe 
+to terminate when the machine is otherwise ready to be rebooted/shutdow
+
+
+ReplicasSet will ensure that the number of pods (defined in our config file) is always running in our cluster.
+Does not matter in which worker node they are running. The scheduler will schedule the pods on any node depending upon the free resources.
+If one of our nodes goes down then all pods running on the node will be randomly scheduled on different nodes as per the resource availability.
+In this way, ReplicaSet ensures that the number of pods of an application is running on the correct scale as specified in the conf file.
+
+
+Whereas in the case of DaemonSet it will ensure that one copy of pod defined in our configuration will always be available on every worker node.
+
+The total # of pods running in DaemonSet = Number of worker nodes in our cluster
+
+If a new node is added in our cluster then DaemonSet will automatically allocate pod on that node. Similarly, if a node is deleted then the 
+pod running on the node is also destroyed, it will not reschedule the pod on different nodes as in case of ReplicaSet.
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+Q2.Suppose you have deployed your application using a deployment controller. Assume the initial number of replicas is one.
+Write the steps needed to update a container's image using deployment, making sure that there is zero downtime.
+
+1. Set the image : kubectl set image deployment nginx-deploymentapiVersion: apps/v1
+kind: Deployment  (Set "kind as an Deployment and port should be same as initial container port")
+metadata:
+name: nginx-deployment
+labels:
+app: nginx
+spec:
+replicas: 3
+selector:
+matchLabels:
+app: nginx
+template:
+metadata:
+labels:
+app: nginx
+spec:
+containers:
+- name: nginx
+image: nginx:1.14.2
+ports:
+- containerPort: 8000
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+Q3.You have deployed an application, that is listening at port 8000. You used a replica-set to deploy it and created a NodePort service to make
+it accessible. But when you test it, somehow the application is not reachable at the port. 
+Write down your approach and sequentially all the steps that you will take to find out the issue.
+
+1. Cross Check if connections from Nodeport to service IP (clusterIP) to port to target port are all correct.
+2. Just verify all the YAML files including syntax difference and containerPort
+example
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+name: hello-world
+spec:
+selector:
+matchLabels:
+run: load-balancer-example
+replicas: 2
+template:
+metadata:
+labels:
+run: load-balancer-example
+spec:
+containers:
+- name: hello-world
+image: gcr.io/google-samples/node-hello:1.0
+ports:
+- containerPort: 8000
+protocol: TCP
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Q4. Demo voting app
+
+
+[ec2-user@ip-172-31-17-176 ~]$ sudo -i
+[root@ip-172-31-17-176 ~]# ls
+kubernetes-training
+[root@ip-172-31-17-176 ~]# cd kubernetes-training
+[root@ip-172-31-17-176 kubernetes-training]# ls
+00installation.md            13-networking
+01-Getting-started           14-security
+01gettingstartedWithKube.md  15-calico
+03-Pods                      16-dashboard
+03-pods.md                   16-dashboard-setup.md
+04-controllers               Deployments.md
+04-controllers.md            heapster.md
+05-services                  helm
+05-services.md               history.txt
+06-storage                   ingress.md
+06-volumes.md                installation-multi-node-master.md
+07-configmap.md              Istio-setup.md
+07-configmaps-and-secrets    Kubernetes-slides
+08-metadata                  kubernetes-troubleshooting.md
+09-deployments               prometheus-setup.md
+10 Stateful Set              README.md
+11-RBAC                      Working with MiniKube.md
+12-cluster-admintration
+[root@ip-172-31-17-176 kubernetes-training]# cd
+[root@ip-172-31-17-176 ~]# pwd
+/root
+[root@ip-172-31-17-176 ~]# ll
+total 4
+drwxr-xr-x 20 root root 4096 Apr 21 05:30 kubernetes-training
+[root@ip-172-31-17-176 ~]# get clone https://github.com/omrKalyan/example-voting-app
+-bash: get: command not found
+[root@ip-172-31-17-176 ~]# git clone https://github.com/omrKalyan/example-voting-app
+Cloning into 'example-voting-app'...
+remote: Enumerating objects: 494, done.
+remote: Total 494 (delta 0), reused 0 (delta 0), pack-reused 494
+Receiving objects: 100% (494/494), 236.48 KiB | 12.45 MiB/s, done.
+Resolving deltas: 100% (178/178), done.
+[root@ip-172-31-17-176 ~]# ll
+total 4
+drwxr-xr-x  8 root root  335 Apr 29 09:58 example-voting-app
+drwxr-xr-x 20 root root 4096 Apr 21 05:30 kubernetes-training
+[root@ip-172-31-17-176 ~]# cd example-voting-app/
+[root@ip-172-31-17-176 example-voting-app]# ls
+architecture.png               docker-compose.yml  MAINTAINERS  worker
+dockercloud.yml                docker-stack.yml    README.md
+docker-compose-javaworker.yml  k8s-specifications  result
+docker-compose-simple.yml      LICENSE             vote
+[root@ip-172-31-17-176 example-voting-app]# git clone https://github.com/omrKalyan/example-voting-app
+Cloning into 'example-voting-app'...
+remote: Enumerating objects: 494, done.
+remote: Total 494 (delta 0), reused 0 (delta 0), pack-reused 494
+Receiving objects: 100% (494/494), 236.48 KiB | 13.14 MiB/s, done.
+Resolving deltas: 100% (178/178), done.
+[root@ip-172-31-17-176 example-voting-app]# ll
+total 96
+-rw-r--r-- 1 root root 54824 Apr 29 09:58 architecture.png
+-rw-r--r-- 1 root root   609 Apr 29 09:58 dockercloud.yml
+-rw-r--r-- 1 root root   808 Apr 29 09:58 docker-compose-javaworker.yml
+-rw-r--r-- 1 root root   400 Apr 29 09:58 docker-compose-simple.yml
+-rw-r--r-- 1 root root   808 Apr 29 09:58 docker-compose.yml
+-rw-r--r-- 1 root root  1692 Apr 29 09:58 docker-stack.yml
+drwxr-xr-x 8 root root   335 Apr 29 09:59 example-voting-app
+drwxr-xr-x 2 root root   250 Apr 29 09:58 k8s-specifications
+-rw-r--r-- 1 root root 10758 Apr 29 09:58 LICENSE
+-rw-r--r-- 1 root root   185 Apr 29 09:58 MAINTAINERS
+-rw-r--r-- 1 root root  2182 Apr 29 09:58 README.md
+drwxr-xr-x 5 root root   133 Apr 29 09:58 result
+drwxr-xr-x 4 root root    93 Apr 29 09:58 vote
+drwxr-xr-x 3 root root    70 Apr 29 09:58 worker
+[root@ip-172-31-17-176 example-voting-app]# cd k8s-specifications
+[root@ip-172-31-17-176 k8s-specifications]# kubectl get all
+NAME                     READY   STATUS    RESTARTS   AGE
+pod/kubia-manual-kcvrl   1/1     Running   0          3d1h
+pod/kubia-manual-venu    1/1     Running   0          3d2h
+pod/kubia2-rajan-8wbpn   1/1     Running   0          7d5h
+pod/kubia2-rajan-lkwdv   1/1     Running   0          7d5h
+pod/kubia2-rajan-xwj2p   1/1     Running   0          7d5h
+pod/kubia2-venu-cftbp    1/1     Running   0          2d2h
+pod/kubia2-venu-n9g8b    1/1     Running   0          2d2h
+pod/kubia2-venu-q6bkz    1/1     Running   0          46h
+pod/kubia2-venu-v4vkt    1/1     Running   0          2d2h
+pod/shreyansh-nginx      1/1     Running   0          3d3h
+pod/ssd-monitor-62b6s    1/1     Running   0          24h
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicationcontroller/kubia2-rajan   3         3         3       7d5h
+replicationcontroller/kubia2-venu    4         4         4       2d2h
+
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   7d5h
+
+NAME                         DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/ssd-monitor   1         1         1       1            1           disk=ssd        7d4h
+[root@ip-172-31-17-176 k8s-specifications]# kubectl apply -f .
+deployment.apps/db created
+service/db created
+deployment.apps/redis created
+service/redis created
+deployment.apps/result created
+service/result created
+deployment.apps/vote created
+service/vote created
+deployment.apps/worker created
+[root@ip-172-31-17-176 k8s-specifications]# kubectl get all
+NAME                          READY   STATUS              RESTARTS   AGE
+pod/db-57b8b86bcf-8qvd7       0/1     ContainerCreating   0          4s
+pod/kubia-manual-kcvrl        1/1     Running             0          3d1h
+pod/kubia-manual-venu         1/1     Running             0          3d2h
+pod/kubia2-rajan-8wbpn        1/1     Running             0          7d5h
+pod/kubia2-rajan-lkwdv        1/1     Running             0          7d5h
+pod/kubia2-rajan-xwj2p        1/1     Running             0          7d5h
+pod/kubia2-venu-cftbp         1/1     Running             0          2d2h
+pod/kubia2-venu-n9g8b         1/1     Running             0          2d2h
+pod/kubia2-venu-q6bkz         1/1     Running             0          46h
+pod/kubia2-venu-v4vkt         1/1     Running             0          2d2h
+pod/redis-868d64d78-mhnrp     0/1     ContainerCreating   0          4s
+pod/result-5d57b59f4b-7zhr9   0/1     ContainerCreating   0          4s
+pod/shreyansh-nginx           1/1     Running             0          3d3h
+pod/ssd-monitor-62b6s         1/1     Running             0          24h
+pod/vote-94849dc97-plh4k      0/1     ContainerCreating   0          3s
+pod/worker-dd46d7584-78kj6    0/1     ContainerCreating   0          3s
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicationcontroller/kubia2-rajan   3         3         3       7d5h
+replicationcontroller/kubia2-venu    4         4         4       2d2h
+
+NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+service/db           ClusterIP   10.97.250.74     <none>        5432/TCP         4s
+service/kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP          7d5h
+service/redis        ClusterIP   10.107.220.16    <none>        6379/TCP         4s
+service/result       NodePort    10.107.106.44    <none>        5001:31001/TCP   3s
+service/vote         NodePort    10.101.227.110   <none>        5000:31000/TCP   3s
+
+NAME                         DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/ssd-monitor   1         1         1       1            1           disk=ssd        7d4h
+
+NAME                     READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/db       0/1     1            0           4s
+deployment.apps/redis    0/1     1            0           4s
+deployment.apps/result   0/1     1            0           4s
+deployment.apps/vote     0/1     1            0           3s
+deployment.apps/worker   0/1     1            0           3s
+
+NAME                                DESIRED   CURRENT   READY   AGE
+replicaset.apps/db-57b8b86bcf       1         1         0       4s
+replicaset.apps/redis-868d64d78     1         1         0       4s
+replicaset.apps/result-5d57b59f4b   1         1         0       4s
+replicaset.apps/vote-94849dc97      1         1         0       3s
+replicaset.apps/worker-dd46d7584    1         1         0       3s
+[root@ip-172-31-17-176 k8s-specifications]# kubectl get all
+NAME                          READY   STATUS              RESTARTS   AGE
+pod/db-57b8b86bcf-8qvd7       0/1     ContainerCreating   0          19s
+pod/kubia-manual-kcvrl        1/1     Running             0          3d2h
+pod/kubia-manual-venu         1/1     Running             0          3d2h
+pod/kubia2-rajan-8wbpn        1/1     Running             0          7d5h
+pod/kubia2-rajan-lkwdv        1/1     Running             0          7d5h
+pod/kubia2-rajan-xwj2p        1/1     Running             0          7d5h
+pod/kubia2-venu-cftbp         1/1     Running             0          2d2h
+pod/kubia2-venu-n9g8b         1/1     Running             0          2d2h
+pod/kubia2-venu-q6bkz         1/1     Running             0          46h
+pod/kubia2-venu-v4vkt         1/1     Running             0          2d2h
+pod/redis-868d64d78-mhnrp     0/1     ContainerCreating   0          19s
+pod/result-5d57b59f4b-7zhr9   0/1     ContainerCreating   0          19s
+pod/shreyansh-nginx           1/1     Running             0          3d3h
+pod/ssd-monitor-62b6s         1/1     Running             0          24h
+pod/vote-94849dc97-plh4k      0/1     ContainerCreating   0          18s
+pod/worker-dd46d7584-78kj6    0/1     ContainerCreating   0          18s
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicationcontroller/kubia2-rajan   3         3         3       7d5h
+replicationcontroller/kubia2-venu    4         4         4       2d2h
+
+NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+service/db           ClusterIP   10.97.250.74     <none>        5432/TCP         19s
+service/kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP          7d5h
+service/redis        ClusterIP   10.107.220.16    <none>        6379/TCP         19s
+service/result       NodePort    10.107.106.44    <none>        5001:31001/TCP   18s
+service/vote         NodePort    10.101.227.110   <none>        5000:31000/TCP   18s
+
+NAME                         DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/ssd-monitor   1         1         1       1            1           disk=ssd        7d4h
+
+NAME                     READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/db       0/1     1            0           19s
+deployment.apps/redis    0/1     1            0           19s
+deployment.apps/result   0/1     1            0           19s
+deployment.apps/vote     0/1     1            0           18s
+deployment.apps/worker   0/1     1            0           18s
+
+NAME                                DESIRED   CURRENT   READY   AGE
+replicaset.apps/db-57b8b86bcf       1         1         0       19s
+replicaset.apps/redis-868d64d78     1         1         0       19s
+replicaset.apps/result-5d57b59f4b   1         1         0       19s
+replicaset.apps/vote-94849dc97      1         1         0       18s
+replicaset.apps/worker-dd46d7584    1         1         0       18s
+[root@ip-172-31-17-176 k8s-specifications]# kubectl get pod
+NAME                      READY   STATUS    RESTARTS   AGE
+db-57b8b86bcf-8qvd7       1/1     Running   0          11m
+kubia-manual-kcvrl        1/1     Running   0          3d2h
+kubia-manual-venu         1/1     Running   0          3d2h
+kubia2-rajan-8wbpn        1/1     Running   0          7d5h
+kubia2-rajan-lkwdv        1/1     Running   0          7d5h
+kubia2-rajan-xwj2p        1/1     Running   0          7d5h
+kubia2-venu-cftbp         1/1     Running   0          2d2h
+kubia2-venu-n9g8b         1/1     Running   0          2d2h
+kubia2-venu-q6bkz         1/1     Running   0          47h
+kubia2-venu-v4vkt         1/1     Running   0          2d2h
+redis-868d64d78-mhnrp     1/1     Running   0          11m
+result-5d57b59f4b-7zhr9   1/1     Running   0          11m
+shreyansh-nginx           1/1     Running   0          3d3h
+ssd-monitor-62b6s         1/1     Running   0          24h
+vote-94849dc97-plh4k      1/1     Running   0          11m
+worker-dd46d7584-78kj6    1/1     Running   0          11m
+[root@ip-172-31-17-176 k8s-specifications]# kubectl delete pods vote-94849dc97-plh4k
+pod "vote-94849dc97-plh4k" deleted
+[root@ip-172-31-17-176 k8s-specifications]# kubectl get pod
+NAME                      READY   STATUS    RESTARTS   AGE
+db-57b8b86bcf-8qvd7       1/1     Running   0          11m
+kubia-manual-kcvrl        1/1     Running   0          3d2h
+kubia-manual-venu         1/1     Running   0          3d2h
+kubia2-rajan-8wbpn        1/1     Running   0          7d5h
+kubia2-rajan-lkwdv        1/1     Running   0          7d5h
+kubia2-rajan-xwj2p        1/1     Running   0          7d5h
+kubia2-venu-cftbp         1/1     Running   0          2d2h
+kubia2-venu-n9g8b         1/1     Running   0          2d2h
+kubia2-venu-q6bkz         1/1     Running   0          47h
+kubia2-venu-v4vkt         1/1     Running   0          2d2h
+redis-868d64d78-mhnrp     1/1     Running   0          11m
+result-5d57b59f4b-7zhr9   1/1     Running   0          11m
+shreyansh-nginx           1/1     Running   0          3d3h
+ssd-monitor-62b6s         1/1     Running   0          24h
+vote-94849dc97-9q8h7      1/1     Running   0          6s
+worker-dd46d7584-78kj6    1/1     Running   0          11m
+[root@ip-172-31-17-176 k8s-specifications]# kubectl delete pods worker-dd46d7584-78kj6
+pod "worker-dd46d7584-78kj6" deleted
+^[[A^[[B
+^C
+[root@ip-172-31-17-176 k8s-specifications]# kubectl get pod
+NAME                      READY   STATUS        RESTARTS   AGE
+db-57b8b86bcf-8qvd7       1/1     Running       0          12m
+kubia-manual-kcvrl        1/1     Running       0          3d2h
+kubia-manual-venu         1/1     Running       0          3d2h
+kubia2-rajan-8wbpn        1/1     Running       0          7d5h
+kubia2-rajan-lkwdv        1/1     Running       0          7d5h
+kubia2-rajan-xwj2p        1/1     Running       0          7d5h
+kubia2-venu-cftbp         1/1     Running       0          2d2h
+kubia2-venu-n9g8b         1/1     Running       0          2d2h
+kubia2-venu-q6bkz         1/1     Running       0          47h
+kubia2-venu-v4vkt         1/1     Running       0          2d2h
+redis-868d64d78-mhnrp     1/1     Running       0          12m
+result-5d57b59f4b-7zhr9   1/1     Running       0          12m
+shreyansh-nginx           1/1     Running       0          3d3h
+ssd-monitor-62b6s         1/1     Running       0          24h
+vote-94849dc97-9q8h7      1/1     Running       0          55s
+worker-dd46d7584-78kj6    1/1     Terminating   0          12m
+worker-dd46d7584-cdx97    1/1     Running       0          29s
+[root@ip-172-31-17-176 k8s-specifications]# kubectl delete pods db-57b8b86bcf-8qvd7
+pod "db-57b8b86bcf-8qvd7" deleted
+^C
+[root@ip-172-31-17-176 k8s-specifications]# kubectl get pod
+NAME                      READY   STATUS        RESTARTS   AGE
+db-57b8b86bcf-8qvd7       0/1     Terminating   0          13m
+db-57b8b86bcf-qw5tf       1/1     Running       0          6s
+kubia-manual-kcvrl        1/1     Running       0          3d2h
+kubia-manual-venu         1/1     Running       0          3d2h
+kubia2-rajan-8wbpn        1/1     Running       0          7d5h
+kubia2-rajan-lkwdv        1/1     Running       0          7d5h
+kubia2-rajan-xwj2p        1/1     Running       0          7d5h
+kubia2-venu-cftbp         1/1     Running       0          2d2h
+kubia2-venu-n9g8b         1/1     Running       0          2d2h
+kubia2-venu-q6bkz         1/1     Running       0          47h
+kubia2-venu-v4vkt         1/1     Running       0          2d2h
+redis-868d64d78-mhnrp     1/1     Running       0          13m
+result-5d57b59f4b-7zhr9   1/1     Running       0          13m
+shreyansh-nginx           1/1     Running       0          3d3h
+ssd-monitor-62b6s         1/1     Running       0          24h
+vote-94849dc97-9q8h7      1/1     Running       0          82s
+worker-dd46d7584-cdx97    1/1     Running       0          56s
+[root@ip-172-31-17-176 k8s-specifications]# kubectl get pod
+NAME                      READY   STATUS    RESTARTS   AGE
+db-57b8b86bcf-qw5tf       1/1     Running   0          14s
+kubia-manual-kcvrl        1/1     Running   0          3d2h
+kubia-manual-venu         1/1     Running   0          3d2h
+kubia2-rajan-8wbpn        1/1     Running   0          7d5h
+kubia2-rajan-lkwdv        1/1     Running   0          7d5h
+kubia2-rajan-xwj2p        1/1     Running   0          7d5h
+kubia2-venu-cftbp         1/1     Running   0          2d2h
+kubia2-venu-n9g8b         1/1     Running   0          2d2h
+kubia2-venu-q6bkz         1/1     Running   0          47h
+kubia2-venu-v4vkt         1/1     Running   0          2d2h
+redis-868d64d78-mhnrp     1/1     Running   0          13m
+result-5d57b59f4b-7zhr9   1/1     Running   0          13m
+shreyansh-nginx           1/1     Running   0          3d3h
+ssd-monitor-62b6s         1/1     Running   0          24h
+vote-94849dc97-9q8h7      1/1     Running   0          90s
+worker-dd46d7584-cdx97    1/1     Running   0          64s
+[root@ip-172-31-17-176 k8s-specifications]#
+
+
+
+
+
